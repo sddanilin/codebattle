@@ -3,6 +3,9 @@ import axios from 'axios';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import cn from 'classnames';
+import { useSelector } from 'react-redux';
+import { currentUserIsAdminSelector, userSettingsSelector } from '../selectors';
+import Loading from '../components/Loading';
 
 const csrfToken = document
   .querySelector("meta[name='csrf-token']")
@@ -42,7 +45,7 @@ const Form = ({ onSubmit, id, children }) => (
 );
 
 const Input = ({
- id, type, title, formik,
+ id, type = id, title, formik,
 }) => {
   const isInvalid = isShowInvalidMessage(formik, id);
   const inputClassName = getInputClassName(isInvalid);
@@ -168,7 +171,7 @@ const SignIn = () => {
         <Form onSubmit={formik.handleSubmit} id="login">
           <Title text="Sign In" />
           <Input id="base" type="hidden" formik={formik} />
-          <Input id="email" type="email" title="Email" formik={formik} />
+          <Input id="email" title="Email" formik={formik} />
           <Input
             id="password"
             type="password"
@@ -237,10 +240,9 @@ const SignUp = () => {
           <Title text="Sign Up" />
           <Input id="base" type="hidden" formik={formik} />
           <Input id="name" type="text" title="Nickname" formik={formik} />
-          <Input id="email" type="email" title="Email" formik={formik} />
+          <Input id="email" title="Email" formik={formik} />
           <Input
             id="password"
-            type="password"
             title="Password"
             formik={formik}
           />
@@ -310,13 +312,131 @@ const ResetPassword = () => {
         <Form onSubmit={formik.handleSubmit} id="remindPassword">
           <Title text="Forgot your password?" />
           <Input id="base" type="hidden" formik={formik} />
-          <Input id="email" type="email" title="Email" formik={formik} />
+          <Input id="email" title="Email" formik={formik} />
         </Form>
       </Body>
       <Footer>
         <SignUpInvitation />
         <SignInInvitation />
       </Footer>
+    </Container>
+  );
+};
+
+const CompanyUserSignUp = () => (
+  <Container>
+    <Body>
+      <CompanyUserForm />
+    </Body>
+  </Container>
+);
+
+const CompanyUserForm = () => {
+  const currentUser = useSelector(userSettingsSelector);
+
+  const formik = useFormik({
+    initialValues: {
+      name: '',
+    },
+    validationSchema: Yup.object().shape({
+      name: Yup.string().required('Nickname required'),
+    }),
+    onSubmit: formData => {
+      axios
+        .post('/api/v1/company_users', formData, {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken,
+          },
+        })
+        .then(() => {
+          window.location.href = getNextLocation();
+        })
+        .catch(error => {
+          // TODO: Add better errors handler
+          if (error.response.data.errors) {
+            const { errors } = error.response.data;
+            if (errors.name) { formik.setFieldError('name', errors.name); }
+            if (errors.base) { formik.setFieldError('base', errors.base); }
+          }
+        });
+    },
+  });
+
+  if (!currentUser) {
+    return <Loading />;
+  }
+
+  if (!currentUser.company_name) {
+    return "You don't have authorization token. Please ";
+  }
+
+  if (currentUser.company_name && currentUser.name !== 'anonymous') {
+    return "You already have a company account. You may 'Sign out' or have fun))";
+  }
+
+  return (
+    <Form onSubmit={formik.handleSubmit} id="companySignIn">
+      <Title text={`Enter your name for authorization as member of company: ${currentUser.company_name}`} />
+      <Input id="base" type="hidden" formik={formik} />
+      <Input id="name" type="text" title="Name" formik={formik} />
+    </Form>
+  );
+};
+
+const CompanyAccountForm = () => {
+  const isAdmin = useSelector(currentUserIsAdminSelector);
+
+  const formik = useFormik({
+    initialValues: {
+      name: '',
+    },
+    validationSchema: Yup.object().shape({
+      name: Yup.string().required('Company name required'),
+    }),
+    onSubmit: formData => {
+      axios
+        .post('/api/v1/company_accounts', formData, {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken,
+          },
+        })
+        .then(() => {
+          window.location.href = getNextLocation();
+        })
+        .catch(error => {
+          // TODO: Add better errors handler
+          if (error.response.data.errors) {
+            const { errors } = error.response.data;
+            if (errors.name) { formik.setFieldError('name', errors.name); }
+            if (errors.base) { formik.setFieldError('base', errors.base); }
+          }
+        });
+    },
+  });
+
+  if (!isAdmin) {
+    const message = "You don't have permission to create company account";
+
+    return (
+      <Container>
+        <Body>
+          {message}
+        </Body>
+      </Container>
+    );
+  }
+
+  return (
+    <Container>
+      <Body>
+        <Form onSubmit={formik.handleSubmit} id="companyCreation">
+          <Title text="Enter name of company to create collective account" />
+          <Input id="base" type="hidden" formik={formik} />
+          <Input id="name" type="text" title="Name" formik={formik} />
+        </Form>
+      </Body>
     </Container>
   );
 };
@@ -331,6 +451,10 @@ const Registration = () => {
       return <SignUp />;
     case '/remind_password':
       return <ResetPassword />;
+    case '/company_users/new':
+      return <CompanyUserSignUp />;
+    case '/company_accounts/new':
+      return <CompanyAccountForm />;
     default:
       throw new Error('Unexpected Registration page route');
   }

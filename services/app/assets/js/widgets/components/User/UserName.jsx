@@ -5,14 +5,17 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import i18n from '../../../i18n';
 import LanguageIcon from '../LanguageIcon';
 
-const renderUserName = ({ id, name, rank }) => {
+const renderUserName = ({
+  id, name, companyName, rank,
+}) => {
   if (id < 0) {
     return i18n.t('%{name}(bot)', { name });
   }
 
   const displayRank = rank ? `(${rank})` : '';
+  const displayCompany = companyName ? `(${companyName})` : '';
 
-  return `${name}${displayRank}`;
+  return `${name}${displayCompany}${displayRank}`;
 };
 const renderOnlineIndicator = (user, isOnline) => {
   if (user.id <= 0) {

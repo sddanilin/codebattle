@@ -41,6 +41,19 @@ const UserInfo = ({ user, truncate = false, hideOnlineIndicator = false }) => {
 
   const isOnline = presenceList.some(({ id }) => id === user?.id);
 
+  if (user.companyName && user.name) {
+    return (
+      <div>
+        <UserName
+          user={user}
+          truncate={truncate}
+          isOnline={isOnline}
+          hideOnlineIndicator={hideOnlineIndicator}
+        />
+      </div>
+    );
+  }
+
   return (
     <PopoverStickOnHover
       id={`user-info-${user?.id}`}

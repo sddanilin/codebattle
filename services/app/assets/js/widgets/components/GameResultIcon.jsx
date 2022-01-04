@@ -1,7 +1,8 @@
-import React from 'react';
-import { Tooltip, OverlayTrigger } from 'react-bootstrap';
+import React, { memo } from 'react';
 import { useSelector } from 'react-redux';
+import { Tooltip, OverlayTrigger } from 'react-bootstrap';
 import _ from 'lodash';
+
 import * as selectors from '../selectors';
 
 const GameResultIcon = ({ editor: { userId } }) => {
@@ -21,9 +22,9 @@ const GameResultIcon = ({ editor: { userId } }) => {
         placement="left"
       >
         <img
+          className="cb-result-toolbar-icon"
           src="/assets/images/big-flag.png"
           alt="white-flag"
-          style={{ width: '200px' }}
         />
       </OverlayTrigger>
     );
@@ -43,4 +44,4 @@ const GameResultIcon = ({ editor: { userId } }) => {
   return null;
 };
 
-export default GameResultIcon;
+export default memo(GameResultIcon);

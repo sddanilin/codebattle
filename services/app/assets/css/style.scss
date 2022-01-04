@@ -167,6 +167,22 @@ a {
   font-size: 8px;
 }
 
+.cb-vim-status {
+  bottom: 5px;
+}
+
+.cb-result-icon {
+  bottom: 5%;
+  right: 5%;
+  
+  opacity: 0.5;
+  z-index: 100;
+}
+
+.cb-result-toolbar-icon {
+  width: 200px;
+}
+
 .cb-user-online {
   color: var(--green) !important;
 }

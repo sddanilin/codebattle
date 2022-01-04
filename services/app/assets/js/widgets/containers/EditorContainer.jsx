@@ -1,33 +1,24 @@
 import React, { useEffect, useContext } from 'react';
-import _ from 'lodash';
-import cn from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
 import { useMachine } from '@xstate/react';
+import cn from 'classnames';
+import _ from 'lodash';
+
 import editorModes from '../config/editorModes';
-import EditorToolbar from './EditorsToolbars/EditorToolbar';
-import * as GameActions from '../middlewares/Game';
-import { actions } from '../slices';
-import * as selectors from '../selectors';
-import GameContext from './GameContext';
-import { replayerMachineStates } from '../machines/game';
 import editorSettingsByUserType from '../config/editorSettingsByUserType';
 import editorUserTypes from '../config/editorUserTypes';
+import { replayerMachineStates } from '../machines/game';
 
-const EditorContainer = ({
-  id,
-  editorMachine,
-  type,
-  cardClassName,
-  theme,
-  editorState,
-  editorHeight,
-  editorMode,
-  children,
-}) => {
+import * as GameActions from '../middlewares/Game';
+import * as selectors from '../selectors';
+import { actions } from '../slices';
+
+import GameContext from './GameContext';
+import EditorToolbar from './EditorsToolbars/EditorToolbar';
+import GameResultIcon from '../components/GameResultIcon';
+
+const useEditorMachine = (editorMachine, id) => {
   const dispatch = useDispatch();
-  const updateEditorValue = data => dispatch(GameActions.sendEditorText(data));
-  const players = useSelector(selectors.gamePlayersSelector);
-  const { current: gameCurrent } = useContext(GameContext);
 
   const context = { userId: id };
 
@@ -59,16 +50,37 @@ const EditorContainer = ({
     },
   );
 
-  const checkResult = () => {
-    send('user_check_solution');
-  };
-
   useEffect(() => {
     GameActions.connectToEditor(service)(dispatch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const isNeedHotKeys = editorCurrent.context.type === 'current_user';
+  return [editorCurrent, send, service];
+};
+
+const EditorContainer = ({
+  id,
+  editorMachine,
+  type,
+  cardClassName,
+  theme,
+  editorState,
+  editorHeight,
+  editorMode,
+  children,
+}) => {
+  const dispatch = useDispatch();
+  const updateEditorValue = data => dispatch(GameActions.sendEditorText(data));
+  const players = useSelector(selectors.gamePlayersSelector);
+  const { current: gameCurrent } = useContext(GameContext);
+
+  const [editorCurrent, send] = useEditorMachine(editorMachine, id);
+
+  const checkResult = () => {
+    send('user_check_solution');
+  };
+
+  const isNeedHotKeys = type === 'current_user';
 
   useEffect(() => {
     /** @param {KeyboardEvent} e */
@@ -112,18 +124,14 @@ const EditorContainer = ({
 
   const canChange = userSettings.type === editorUserTypes.currentUser
     && !gameCurrent.matches({ replayer: replayerMachineStates.on });
-  const onChange = canChange
-    ? value => {
-        updateEditorValue(value);
-      }
-    : _.noop();
+
   const editorParams = {
     syntax: editorState.currentLangSlug || 'javascript',
-    onChange,
+    onChange: canChange ? updateEditorValue : _.noop(),
     checkResult,
     value: editorState.text,
     editorHeight,
-    mode: editorCurrent.context.editable ? editorMode : editorModes.default,
+    mode: editorMode,
     theme,
     ...userSettings,
     editable:
@@ -154,6 +162,11 @@ const EditorContainer = ({
           editorSettingClassNames="btn-group align-items-center m-1"
           userInfoClassNames="btn-group align-items-center justify-content-end m-1"
         />
+        <div
+          className="position-absolute cb-result-icon"
+        >
+          <GameResultIcon editor={editorState} />
+        </div>
         {children({
           ...editorParams,
         })}

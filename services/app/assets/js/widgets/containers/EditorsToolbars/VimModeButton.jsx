@@ -7,7 +7,7 @@ import { actions } from '../../slices';
 
 const VimModeButton = ({ player }) => {
   const dispatch = useDispatch();
-  const currentMode = useSelector(state => editorsModeSelector(player.id)(state));
+  const currentMode = useSelector(editorsModeSelector(player.id));
 
   const isVimMode = currentMode === editorModes.vim;
 

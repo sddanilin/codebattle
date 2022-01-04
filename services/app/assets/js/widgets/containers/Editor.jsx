@@ -12,6 +12,17 @@ import GameTypeCodes from '../config/gameTypeCodes';
 import sound from '../lib/sound';
 import { actions } from '../slices';
 
+const configureCommands = (editor, commands) => {
+  commands.forEach(params => {
+    const cond = params.cond || true;
+    const { keybindings, callback } = params;
+
+    if (cond) {
+      editor.addCommand(keybindings, callback);
+    }
+  });
+};
+
 class Editor extends PureComponent {
   static propTypes = {
     value: PropTypes.string,
@@ -159,37 +170,38 @@ class Editor extends PureComponent {
     const { editable, gameType } = this.props;
     const isTournament = gameType === GameTypeCodes.tournament;
 
-    if (editable && !isTournament) {
-      this.editor.focus();
-    } else if (editable && isTournament) {
-      this.editor.addCommand(
-        monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_V,
-        () => null,
-      );
+    if (editable) {
       this.editor.focus();
     } else {
-      // disable copying for spectator
-      this.editor.addCommand(
-        monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_C,
-        () => null,
-      );
       this.editor.onDidChangeCursorSelection(() => {
         const { column, lineNumber } = this.editor.getPosition();
         this.editor.setPosition({ lineNumber, column });
       });
     }
 
+    configureCommands(this.editor, [
+      {
+        cond: editable && isTournament,
+        keybindings: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_V,
+        callback: () => null,
+      },
+      {
+        // disable copying for spectator
+        cond: !editable,
+        keybindings: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_C,
+        callback: () => null,
+      },
+      {
+        keybindings: this.monaco.KeyMod.CtrlCmd | this.monaco.KeyCode.Enter,
+        callback: () => null,
+      },
+      {
+        keybindings: this.monaco.KeyMod.CtrlCmd | this.monaco.KeyCode.KEY_M,
+        callback: () => null,
+      },
+    ]);
+
     // this.editor.getModel().updateOptions({ tabSize: this.tabSize });
-
-    this.editor.addCommand(
-      this.monaco.KeyMod.CtrlCmd | this.monaco.KeyCode.Enter,
-      () => null,
-    );
-
-    this.editor.addCommand(
-      this.monaco.KeyMod.CtrlCmd | this.monaco.KeyCode.KEY_M,
-      () => null,
-    );
 
     window.addEventListener('resize', this.handleResize);
   };
@@ -215,8 +227,7 @@ class Editor extends PureComponent {
         />
         <div
           ref={this.statusBarRef}
-          className="bg-dark text-white px-1 position-absolute"
-          style={{ bottom: '40px' }}
+          className="bg-dark text-white px-1 position-absolute cb-vim-status"
         />
       </>
     );
